@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ContaminantMigration.Contracts/ContaminantMigration.Contracts.csproj" />
+    <Project Path="src/ContaminantMigration.Core/ContaminantMigration.Core.csproj" />
+    <Project Path="src/ContaminantMigration.Infrastructure/ContaminantMigration.Infrastructure.csproj" />
+    <Project Path="src/ContaminantMigration.LoadBalancer/ContaminantMigration.LoadBalancer.csproj" />
+    <Project Path="src/ContaminantMigration.WebApi/ContaminantMigration.WebApi.csproj" />
+    <Project Path="src/ContaminantMigration.Worker/ContaminantMigration.Worker.csproj" />
+  </Folder>
+</Solution>

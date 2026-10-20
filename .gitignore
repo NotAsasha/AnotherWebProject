@@ -55,3 +55,53 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# ==========================================
+# Visual Studio (Критично: прибирає блокування .vs/)
+# ==========================================
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.sln.docstates
+
+# ==========================================
+# Frontend (Vue 3 / Vite / Node.js)
+# ==========================================
+node_modules/
+client/node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==========================================
+# Інші IDE / редактори (VS Code, Rider)
+# ==========================================
+.idea/
+*.sln.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ==========================================
+# Local Secrets & Environment
+# ==========================================
+appsettings.Local.json
+*.local.json
+.env.local
+.env.*.local
+
+# ==========================================
+# OS Generated Files
+# ==========================================
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+.DS_Store

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-ContaminantMigration.Worker-a2a50642-8436-4870-8e0f-b7d80f251bc3</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MassTransit.RabbitMQ" Version="9.2.3" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ContaminantMigration.Contracts\ContaminantMigration.Contracts.csproj" />
+    <ProjectReference Include="..\ContaminantMigration.Core\ContaminantMigration.Core.csproj" />
+    <ProjectReference Include="..\ContaminantMigration.Infrastructure\ContaminantMigration.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

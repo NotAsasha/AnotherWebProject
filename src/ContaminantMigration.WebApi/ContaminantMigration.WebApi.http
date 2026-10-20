@@ -1,0 +1,6 @@
+@ContaminantMigration.WebApi_HostAddress = http://localhost:5179
+
+GET {{ContaminantMigration.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
