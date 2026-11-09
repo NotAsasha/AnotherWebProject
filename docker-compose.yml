@@ -1,0 +1,123 @@
+name: contaminantmigration
+
+x-backend: &backend
+  profiles: [app]
+  build:
+    context: .
+    args:
+      PROJECT: ContaminantMigration.WebApi
+  environment:
+    ASPNETCORE_ENVIRONMENT: Development
+    URLS: http://+:8080
+    ConnectionStrings__Postgres: 'Host=postgres;Port=5432;Database=contaminantmigration;Username=contaminant;Password="${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"'
+    ConnectionStrings__Redis: redis:6379
+    RabbitMq__Host: rabbitmq
+    RabbitMq__Username: contaminant
+    RabbitMq__Password: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD", "curl", "--fail", "--silent", "--max-time", "10", "http://localhost:8080/health/ready"]
+    interval: 10s
+    timeout: 12s
+    retries: 6
+    start_period: 30s
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: contaminantmigration
+      POSTGRES_USER: contaminant
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env and set POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U contaminant -d contaminantmigration"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: contaminant
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Copy .env.example to .env and set RABBITMQ_PASSWORD}
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  api:
+    <<: *backend
+    ports:
+      - "127.0.0.1:5179:8080"
+
+  worker:
+    <<: *backend
+    build:
+      context: .
+      args:
+        PROJECT: ContaminantMigration.Worker
+    ports:
+      - "127.0.0.1:5181:8080"
+
+  gateway:
+    profiles: [app]
+    build:
+      context: .
+      args:
+        PROJECT: ContaminantMigration.LoadBalancer
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ReverseProxy__Clusters__api__Destinations__api1__Address: http://api:8080/
+    ports:
+      - "127.0.0.1:5297:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "10", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 12s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
