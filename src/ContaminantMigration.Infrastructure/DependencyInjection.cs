@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using StackExchange.Redis;
+using ContaminantMigration.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace ContaminantMigration.Infrastructure;
 
@@ -30,6 +32,7 @@ public static class DependencyInjection
             throw new InvalidOperationException("Configure ConnectionStrings:Redis before starting the service.");
 
         services.AddSingleton(_ => NpgsqlDataSource.Create(postgres));
+        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(postgres));
         services.AddSingleton<IConnectionMultiplexer>(_ =>
         {
             var options = ConfigurationOptions.Parse(redis);

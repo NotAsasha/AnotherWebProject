@@ -20,11 +20,15 @@ notepad .env
 ## Варіант A: backend у Docker
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File scripts/Configure-Local.ps1
 docker compose config --quiet
 docker compose --profile app up -d --build --wait --wait-timeout 180
 docker compose ps
 ```
 
+Скрипт генерує випадковий JWT_SIGNING_KEY у `.env`, якщо його ще немає.
+Compose застосовує EF migrations окремим сервісом `migrate` перед API/Worker;
+його стан `Exited (0)` після успішного завершення — очікуваний.
 Запускаються PostgreSQL, Redis, RabbitMQ, API, Worker і YARP. Frontend поки
 запускається окремо: `npm.cmd --prefix client run dev`.
 
@@ -54,8 +58,10 @@ docker compose --profile app stop api worker gateway
 Підніміть інфраструктуру й створіть локальні налаштування з даних Compose:
 
 ```powershell
-docker compose up -d --wait --wait-timeout 180
 powershell -ExecutionPolicy Bypass -File scripts/Configure-Local.ps1
+docker compose up -d --wait --wait-timeout 180
+dotnet tool restore
+dotnet ef database update --project src/ContaminantMigration.Infrastructure --startup-project src/ContaminantMigration.Infrastructure
 ```
 
 Скрипт записує лише локальні параметри підключень до `appsettings.Local.json`

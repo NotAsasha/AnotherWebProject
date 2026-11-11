@@ -14,6 +14,7 @@ x-backend: &backend
     RabbitMq__Host: rabbitmq
     RabbitMq__Username: contaminant
     RabbitMq__Password: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+    Jwt__SigningKey: ${JWT_SIGNING_KEY:?Run scripts/Configure-Local.ps1 to generate JWT_SIGNING_KEY}
   depends_on:
     postgres:
       condition: service_healthy
@@ -83,17 +84,30 @@ services:
 
   api:
     <<: *backend
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "127.0.0.1:5179:8080"
 
   worker:
     <<: *backend
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     build:
       context: .
       args:
         PROJECT: ContaminantMigration.Worker
     ports:
       - "127.0.0.1:5181:8080"
+
+  migrate:
+    <<: *backend
+    entrypoint: ["dotnet", "ContaminantMigration.WebApi.dll", "--Database:MigrateOnly=true"]
+    restart: "no"
+    healthcheck:
+      disable: true
 
   gateway:
     profiles: [app]

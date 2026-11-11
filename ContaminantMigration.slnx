@@ -8,6 +8,7 @@
     <Project Path="src/ContaminantMigration.Worker/ContaminantMigration.Worker.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ContaminantMigration.WebApi.Tests/ContaminantMigration.WebApi.Tests.csproj" />
     <Project Path="tests/ContaminantMigration.Core.Tests/ContaminantMigration.Core.Tests.csproj" />
   </Folder>
 </Solution>

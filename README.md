@@ -5,7 +5,8 @@
 
 Реалізовано інфраструктурний каркас і чисельне ядро FDM + Upwind у Core:
 валідація стійкості й лімітів, Float32-кадри, прогрес, скасування та тайм-аут.
-Авторизація, збереження задач і підключення solver до Worker — наступні етапи.
+Додано PostgreSQL-схему й JWT-авторизацію. Запуск задач через чергу та підключення
+solver до Worker — наступний етап.
 
 - [Специфікація моделі та API](docs/01-specification.md).
 - [Docker і локальний запуск](docs/02-docker-setup.md).
@@ -13,6 +14,7 @@
 Після створення `.env` з власними паролями:
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File scripts/Configure-Local.ps1
 docker compose --profile app up -d --build --wait --wait-timeout 180
 ```
 
@@ -26,8 +28,13 @@ dotnet build ContaminantMigration.slnx
 npm.cmd --prefix client run build
 ```
 
-Перевірка чисельного ядра (без Docker):
+Тести чисельного ядра й авторизації (без Docker):
 
 ```powershell
-dotnet test tests/ContaminantMigration.Core.Tests -c Release
+dotnet test ContaminantMigration.slnx -c Release
 ```
+
+Авторизація: `POST /api/v1/auth/register`, `POST /api/v1/auth/login`,
+`GET /api/v1/auth/me` (заголовок `Authorization: Bearer <accessToken>`).
+Реєстрація/вхід приймають JSON `{ "email": "...", "password": "..." }`.
+Пароль — 12–128 символів; токен чинний 30 хвилин. Нові користувачі мають роль User.

@@ -1,6 +1,12 @@
 using ContaminantMigration.Infrastructure;
 using ContaminantMigration.Infrastructure.Health;
 using FluentValidation;
+using ContaminantMigration.WebApi.Auth;
+using ContaminantMigration.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
@@ -18,8 +24,37 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<PasswordService>();
+builder.Services.AddSingleton<JwtTokenService>();
+builder.Services.AddOptions<JwtOptions>().Bind(builder.Configuration.GetSection("Jwt"))
+    .Validate(x => x.IsValid(), "Jwt requires a Base64 signing key of at least 32 bytes, issuer, audience and lifetime 1..60 minutes.")
+    .ValidateOnStart();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtOptions>>((bearer, settings) =>
+    {
+        bearer.MapInboundClaims = false;
+        bearer.TokenValidationParameters = settings.Value.ValidationParameters();
+    });
+builder.Services.AddAuthorization(options => options.AddPolicy("Admin", policy => policy.RequireRole("Admin")));
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
+        }));
+});
 
 var app = builder.Build();
+if (builder.Configuration.GetValue<bool>("Database:MigrateOnly"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+    return;
+}
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 if (app.Environment.IsDevelopment())
@@ -31,6 +66,9 @@ app.Use(async (context, next) =>
     await next(context);
 });
 
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.MapServiceHealthChecks();
 app.Run();

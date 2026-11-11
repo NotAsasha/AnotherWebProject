@@ -1,10 +1,19 @@
 $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
 
+$taskEnvPath = Join-Path $taskRoot '.env'
+if (-not (Test-Path -LiteralPath $taskEnvPath)) { throw 'Create .env from .env.example first.' }
+if (-not (Select-String -LiteralPath $taskEnvPath -Pattern '^JWT_SIGNING_KEY=' -Quiet)) {
+    $taskKeyBytes = New-Object byte[] 64
+    $taskRng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $taskRng.GetBytes($taskKeyBytes) } finally { $taskRng.Dispose() }
+    Add-Content -LiteralPath $taskEnvPath -Value ("`nJWT_SIGNING_KEY=" + [Convert]::ToBase64String($taskKeyBytes))
+}
+
 # Let Compose resolve .env quoting/interpolation; never print the resolved secrets.
 Push-Location -LiteralPath $taskRoot
 try {
-    $taskJson = & docker compose config --format json
+    $taskJson = & docker compose --profile app config --format json
     if ($LASTEXITCODE -ne 0) { throw 'Could not read Compose configuration.' }
     $taskCompose = ($taskJson -join "`n") | ConvertFrom-Json
 } finally {
@@ -41,6 +50,11 @@ foreach ($taskProject in @('ContaminantMigration.WebApi', 'ContaminantMigration.
         Username = $taskCompose.services.rabbitmq.environment.RABBITMQ_DEFAULT_USER
         Password = $taskCompose.services.rabbitmq.environment.RABBITMQ_DEFAULT_PASS
     }) -Force
+    if ($taskProject -eq 'ContaminantMigration.WebApi') {
+        $taskConfig | Add-Member -NotePropertyName Jwt -NotePropertyValue ([pscustomobject]@{
+            SigningKey = $taskCompose.services.api.environment.Jwt__SigningKey
+        }) -Force
+    }
     $taskConfig | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $taskPath -Encoding UTF8
 }
 
