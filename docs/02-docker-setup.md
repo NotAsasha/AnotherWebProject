@@ -29,11 +29,12 @@ docker compose ps
 Скрипт генерує випадковий JWT_SIGNING_KEY у `.env`, якщо його ще немає.
 Compose застосовує EF migrations окремим сервісом `migrate` перед API/Worker;
 його стан `Exited (0)` після успішного завершення — очікуваний.
-Запускаються PostgreSQL, Redis, RabbitMQ, API, Worker і YARP. Frontend поки
-запускається окремо: `npm.cmd --prefix client run dev`.
+Запускаються PostgreSQL, Redis, RabbitMQ, API, Worker, YARP і Vue-клієнт.
+Відкрийте http://localhost:5173, зареєструйтеся та запустіть симуляцію.
 
 | Сервіс | Адреса |
 |---|---|
+| Інтерфейс | http://localhost:5173 |
 | YARP | http://localhost:5297/health/ready |
 | API | http://localhost:5179/health/ready |
 | Worker | http://localhost:5181/health/ready |
@@ -52,7 +53,7 @@ TLS і другі екземпляри API/Worker додаються на ета
 Якщо варіант A уже запущений, звільніть порти застосунків:
 
 ```powershell
-docker compose --profile app stop api worker gateway
+docker compose --profile app stop client api worker gateway
 ```
 
 Підніміть інфраструктуру й створіть локальні налаштування з даних Compose:
@@ -76,6 +77,8 @@ dotnet run --project src/ContaminantMigration.WebApi --launch-profile http
 dotnet run --project src/ContaminantMigration.Worker
 dotnet run --project src/ContaminantMigration.LoadBalancer --launch-profile http
 ```
+
+Для frontend в окремому терміналі: `npm.cmd --prefix client run dev`.
 
 ## Зупинка і діагностика
 

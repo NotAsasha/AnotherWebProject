@@ -1,17 +1,26 @@
 using ContaminantMigration.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using MassTransit;
 
 namespace ContaminantMigration.Infrastructure.Persistence;
 
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<SubmissionKey> SubmissionKeys => Set<SubmissionKey>();
     public DbSet<SimulationTask> SimulationTasks => Set<SimulationTask>();
     public DbSet<SimulationResultData> SimulationResults => Set<SimulationResultData>();
     public DbSet<SimulationFrameData> SimulationFrames => Set<SimulationFrameData>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        model.AddInboxStateEntity();
+        model.AddOutboxMessageEntity();
+        model.AddOutboxStateEntity();
+        var keys = model.Entity<SubmissionKey>();
+        keys.HasKey(x => new { x.OwnerId, x.Key });
+        keys.HasIndex(x => x.ExpiresAt);
+        keys.Property(x => x.RequestHash).HasMaxLength(64);
         var users = model.Entity<AppUser>();
         users.HasKey(x => x.Id);
         users.Property(x => x.Email).HasMaxLength(254).IsRequired();

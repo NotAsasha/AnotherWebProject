@@ -7,6 +7,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Threading.RateLimiting;
+using ContaminantMigration.Core.Simulations;
+using System.Text.Json.Serialization;
+using ContaminantMigration.WebApi.Realtime;
+using MassTransit;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
@@ -20,10 +25,19 @@ builder.Logging.AddJsonConsole(options =>
 });
 
 builder.Services.AddProblemDetails();
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddSingleton<SimulationPlanner>();
 builder.Services.AddOpenApi();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration,
+    bus => bus.AddConsumer<SimulationNotificationConsumer, SimulationNotificationDefinition>());
+builder.Services.AddScoped<SimulationNotifier>();
+builder.Services.AddSignalR().AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!, options =>
+{
+    options.Configuration.ChannelPrefix = RedisChannel.Literal("ContaminantMigration.SignalR");
+    options.Configuration.AbortOnConnectFail = false;
+    options.Configuration.ConnectTimeout = 3000;
+});
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<PasswordService>();
 builder.Services.AddSingleton<JwtTokenService>();
@@ -36,6 +50,16 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
     {
         bearer.MapInboundClaims = false;
         bearer.TokenValidationParameters = settings.Value.ValidationParameters();
+        bearer.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (context.Request.Path.StartsWithSegments("/hubs/simulations")
+                    && context.Request.Query.TryGetValue("access_token", out var token))
+                    context.Token = token.ToString();
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization(options => options.AddPolicy("Admin", policy => policy.RequireRole("Admin")));
 builder.Services.AddRateLimiter(options =>
@@ -70,5 +94,6 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<SimulationsHub>("/hubs/simulations", options => options.CloseOnAuthenticationExpiration = true);
 app.MapServiceHealthChecks();
 app.Run();

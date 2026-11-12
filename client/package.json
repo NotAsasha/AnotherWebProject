@@ -6,12 +6,21 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:unit": "node --test tests/heatmap.test.mjs",
+    "test:realtime": "node --test tests/realtime.integration.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@lucide/vue": "^1.72.0",
+    "@microsoft/signalr": "^10.0.11",
+    "@tailwindcss/vite": "^4.3.5",
+    "pinia": "^4.1.0",
+    "tailwindcss": "^4.3.5",
     "vue": "^3.5.44"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@types/node": "^24.19.2",
     "@vitejs/plugin-vue": "^6.0.10",
     "@vue/tsconfig": "^0.9.1",

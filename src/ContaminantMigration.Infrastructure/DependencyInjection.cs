@@ -14,7 +14,8 @@ namespace ContaminantMigration.Infrastructure;
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(
-        this IServiceCollection services, IConfiguration configuration)
+        this IServiceCollection services, IConfiguration configuration,
+        Action<IBusRegistrationConfigurator>? configureBus = null)
     {
         var postgres = configuration.GetConnectionString("Postgres");
         if (string.IsNullOrWhiteSpace(postgres))
@@ -56,6 +57,13 @@ public static class DependencyInjection
         services.AddMassTransit(bus =>
         {
             bus.SetKebabCaseEndpointNameFormatter();
+            bus.AddEntityFrameworkOutbox<AppDbContext>(outbox =>
+            {
+                outbox.UsePostgres();
+                outbox.UseBusOutbox();
+                outbox.QueryDelay = TimeSpan.FromSeconds(1);
+            });
+            configureBus?.Invoke(bus);
             bus.UsingRabbitMq((context, transport) =>
             {
                 var options = context.GetRequiredService<IOptions<RabbitMqOptions>>().Value;

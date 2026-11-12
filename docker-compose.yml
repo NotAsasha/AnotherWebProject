@@ -109,6 +109,22 @@ services:
     healthcheck:
       disable: true
 
+  client:
+    profiles: [app]
+    build:
+      context: ./client
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
   gateway:
     profiles: [app]
     build:

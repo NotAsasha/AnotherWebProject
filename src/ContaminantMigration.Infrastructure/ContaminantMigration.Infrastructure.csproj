@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\ContaminantMigration.Contracts\ContaminantMigration.Contracts.csproj" />
     <ProjectReference Include="..\ContaminantMigration.Core\ContaminantMigration.Core.csproj" />
   </ItemGroup>
 
@@ -9,6 +10,7 @@
     <PackageReference Include="Docker.DotNet" Version="3.125.15" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.13" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.12" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" Version="8.5.12" />
     <PackageReference Include="StackExchange.Redis" Version="2.7.27" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
