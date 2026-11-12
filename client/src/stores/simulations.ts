@@ -177,7 +177,13 @@ export const useSimulations = defineStore("simulations", () => {
           ? selected.value
           : items.value.find((task) => task.id === update.taskId);
       if (!current || update.version <= current.version) return;
-      apply({ ...current, ...update, id: update.taskId });
+      apply({
+        ...current,
+        ...update,
+        id: update.taskId,
+        estimatedWaitSeconds:
+          update.status === "Queued" ? current.estimatedWaitSeconds : null,
+      });
       if (!active(update.status)) void refresh();
     });
     hub.onreconnecting(() => {

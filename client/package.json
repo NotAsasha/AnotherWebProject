@@ -11,6 +11,7 @@
     "test:realtime": "node --test tests/realtime.integration.mjs",
     "test:replicas": "node --test tests/replicas.integration.mjs",
     "test:autoscaling": "node --test tests/autoscaling.integration.mjs",
+    "test:queue": "node --test tests/queue.integration.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {

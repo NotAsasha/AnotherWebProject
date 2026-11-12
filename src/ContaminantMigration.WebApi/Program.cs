@@ -13,6 +13,7 @@ using ContaminantMigration.WebApi.Realtime;
 using MassTransit;
 using StackExchange.Redis;
 using ContaminantMigration.Infrastructure.Scaling;
+using ContaminantMigration.Infrastructure.Simulations;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
@@ -55,6 +56,7 @@ builder.Services.AddSignalR().AddStackExchangeRedis(builder.Configuration.GetCon
     options.Configuration.ConnectTimeout = 3000;
 });
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHttpClient<QueueWaitEstimator>(client => client.Timeout = TimeSpan.FromSeconds(2));
 builder.Services.AddSingleton<PasswordService>();
 builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddOptions<JwtOptions>().Bind(builder.Configuration.GetSection("Jwt"))

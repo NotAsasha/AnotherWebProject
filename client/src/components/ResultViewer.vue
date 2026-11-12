@@ -5,6 +5,7 @@ import { api, response } from "../lib/api";
 import { decodeFrame, pixels } from "../lib/heatmap";
 import {
   active,
+  queueWaitMessage,
   number,
   statusNames,
   type Result,
@@ -200,8 +201,8 @@ onBeforeUnmount(() => {
       >
         <div class="plot-layout">
           <div class="y-axis">
-            <span>{{ number(task!.parameters.domain.lengthY) }}</span
-            ><b>y, м</b><span>0</span>
+            <span>{{ number(task!.parameters.domain.lengthY) }}</span><b>y, м</b
+            ><span>0</span>
           </div>
           <div class="plot-viewport">
             <canvas
@@ -263,10 +264,17 @@ onBeforeUnmount(() => {
       <p v-else-if="loading" role="status">Завантаження…</p>
       <template v-else-if="task && active(task.status)"
         ><h3>{{ statusNames[task.status] }}</h3>
-        <div class="large-progress">
+        <p
+          v-if="task.status === 'Queued'"
+          data-testid="queue-wait"
+          class="muted"
+        >
+          {{ queueWaitMessage(task.estimatedWaitSeconds) }}
+        </p>
+        <div v-else class="large-progress">
           <div :style="{ width: `${task.progressPercent}%` }"></div>
         </div>
-        <span class="mono"
+        <span v-if="task.status !== 'Queued'" class="mono"
           >{{ number(task.progressPercent, 0) }}% ·
           {{ number(task.completedSteps, 0) }} /
           {{ number(task.totalSteps, 0) }} кроків</span

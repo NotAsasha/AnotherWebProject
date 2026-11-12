@@ -18,7 +18,7 @@ namespace ContaminantMigration.WebApi.Controllers;
 
 [ApiController, Authorize, Route("api/v1/simulations")]
 public sealed class SimulationsController(AppDbContext db, ISendEndpointProvider sender, IPublishEndpoint publisher,
-    IValidator<CreateSimulationRequest> validator, SimulationPlanner planner) : ControllerBase
+    IValidator<CreateSimulationRequest> validator, SimulationPlanner planner, QueueWaitEstimator waitEstimator) : ControllerBase
 {
     private Guid OwnerId => Guid.Parse(User.FindFirstValue("sub")!);
     private IQueryable<SimulationTask> Owned => db.SimulationTasks.Where(x => x.OwnerId == OwnerId);
@@ -99,14 +99,18 @@ public sealed class SimulationsController(AppDbContext db, ISendEndpointProvider
         var totalCount = await query.CountAsync(ct);
         var tasks = await query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id)
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
-        return Ok(new { items = tasks.Select(View), page, pageSize, totalCount });
+        var waits = tasks.Any(x => x.Status == SimulationStatus.Queued)
+            ? await waitEstimator.Estimate(ct) : new Dictionary<Guid, double?>();
+        return Ok(new { items = tasks.Select(x => View(x, waits.GetValueOrDefault(x.Id))), page, pageSize, totalCount });
     }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)
     {
         var task = await Owned.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct);
-        return task is null ? NotFound() : Ok(View(task));
+        if (task is null) return NotFound();
+        var waits = task.Status == SimulationStatus.Queued ? await waitEstimator.Estimate(ct) : null;
+        return Ok(View(task, waits?.GetValueOrDefault(task.Id)));
     }
 
     [HttpPost("{id:guid}/cancel")]
@@ -162,11 +166,12 @@ public sealed class SimulationsController(AppDbContext db, ISendEndpointProvider
 
     private IActionResult AcceptedTask(SimulationTask task) => Accepted($"/api/v1/simulations/{task.Id}",
         new { task.Id, status = task.Status.ToString(), statusUrl = $"/api/v1/simulations/{task.Id}" });
-    private static object View(SimulationTask task) => new
+    private static object View(SimulationTask task, double? estimatedWaitSeconds = null) => new
     {
         task.Id, task.Name, status = task.Status.ToString(), task.ProgressPercent, task.CompletedSteps, task.TotalSteps,
         task.CreatedAt, task.StartedAt, task.FinishedAt, task.CancellationRequestedAt, task.WorkerId, task.Attempt,
-        task.Version, task.ErrorCode, parameters = JsonSerializer.Deserialize<JsonElement>(task.ParametersJson), estimatedWaitSeconds = (double?)null
+        task.Version, task.ErrorCode, parameters = JsonSerializer.Deserialize<JsonElement>(task.ParametersJson),
+        estimatedWaitSeconds = task.Status == SimulationStatus.Queued ? estimatedWaitSeconds : null
     };
     private async Task<(SimulationPlan? Plan, IActionResult? Error)> Plan(CreateSimulationRequest request, CancellationToken ct)
     {

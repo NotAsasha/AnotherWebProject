@@ -97,13 +97,21 @@ test("Register, run, inspect frames, reload history and log out", async ({
     "data-connection",
     "live",
   );
-  const validationError = "Simulation exceeds 200000000 estimated cell updates.";
-  await page.route("**/api/v1/simulations/validate", route => route.fulfill({
-    status: 400,
-    contentType: "application/problem+json",
-    body: JSON.stringify({ errors: { domain: [validationError] } }),
-  }), { times: 1 });
-  await page.getByRole("button", { name: "Запустити симуляцію", exact: true }).click();
+  const validationError =
+    "Simulation exceeds 200000000 estimated cell updates.";
+  await page.route(
+    "**/api/v1/simulations/validate",
+    (route) =>
+      route.fulfill({
+        status: 400,
+        contentType: "application/problem+json",
+        body: JSON.stringify({ errors: { domain: [validationError] } }),
+      }),
+    { times: 1 },
+  );
+  await page
+    .getByRole("button", { name: "Запустити симуляцію", exact: true })
+    .click();
   await expect(page.getByRole("alert")).toHaveText(validationError);
   expect(submissions).toBe(0);
   await page
@@ -184,6 +192,73 @@ test("Register, run, inspect frames, reload history and log out", async ({
     await page.evaluate(() => sessionStorage.getItem("contaminant.session")),
   ).toBeNull();
   expect(errors).toEqual([]);
+});
+
+test("Queue estimates refresh while task version is unchanged", async ({
+  page,
+  request,
+}) => {
+  const credentials = {
+    email: `queue-ui-${crypto.randomUUID()}@example.com`,
+    password: "Browser-password-123",
+  };
+  const registration = await request.post("/api/v1/auth/register", {
+    data: credentials,
+  });
+  expect(registration.status()).toBe(201);
+  users.push((await registration.json()).id);
+  const task = {
+    id: crypto.randomUUID(),
+    name: "Queued simulation",
+    status: "Queued",
+    progressPercent: 0,
+    completedSteps: 0,
+    totalSteps: 67,
+    version: 1,
+    attempt: 0,
+    errorCode: null,
+    createdAt: new Date().toISOString(),
+    startedAt: null,
+    finishedAt: null,
+    estimatedWaitSeconds: null as number | null,
+    parameters: {
+      domain: { lengthX: 100, lengthY: 100, nodesX: 101, nodesY: 101 },
+    },
+  };
+  await page.route(/\/api\/v1\/simulations(?:\?|\/)/, (route) => {
+    const list = route.request().url().includes("?");
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        list ? { items: [task], page: 1, pageSize: 20, totalCount: 1 } : task,
+      ),
+    });
+  });
+  await page.goto("/");
+  await page
+    .getByLabel("Електронна пошта", { exact: true })
+    .fill(credentials.email);
+  await page.getByLabel("Пароль", { exact: true }).fill(credentials.password);
+  await page.getByRole("button", { name: "Увійти", exact: true }).click();
+  await expect(page.getByTestId("queue-wait")).toHaveText(
+    "Час очікування уточнюється.",
+  );
+  task.estimatedWaitSeconds = 25;
+  await expect(page.getByTestId("queue-wait")).toHaveText(
+    "Початок приблизно через 25 с.",
+    { timeout: 7000 },
+  );
+  task.estimatedWaitSeconds = 90;
+  await expect(page.getByTestId("queue-wait")).toHaveText(
+    "Початок приблизно через 2 хв.",
+    { timeout: 7000 },
+  );
+  task.status = "Running";
+  task.version++;
+  await expect(page.getByTestId("queue-wait")).not.toBeVisible({
+    timeout: 7000,
+  });
 });
 
 test("Initial signup screen is usable on a phone", async ({ page }) => {

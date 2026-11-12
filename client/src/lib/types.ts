@@ -105,6 +105,14 @@ export interface Result {
 }
 export const active = (status: TaskStatus) =>
   ["Queued", "Running", "Cancelling"].includes(status);
+export const queueWaitMessage = (seconds: number | null) => {
+  if (seconds === null || !Number.isFinite(seconds))
+    return "Час очікування уточнюється.";
+  if (seconds <= 0) return "Очікується початок виконання.";
+  return seconds < 60
+    ? `Початок приблизно через ${Math.ceil(seconds)} с.`
+    : `Початок приблизно через ${Math.ceil(seconds / 60)} хв.`;
+};
 export const statusNames: Record<TaskStatus, string> = {
   Queued: "У черзі",
   Running: "Обчислення",
