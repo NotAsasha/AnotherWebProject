@@ -1,0 +1,11 @@
+services:
+  client:
+    ports:
+      - "127.0.0.1:5443:443"
+    volumes:
+      - ./.local/https:/etc/nginx/certs:ro
+      - ./client/nginx.https.conf:/etc/nginx/conf.d/default.conf:ro
+  gateway:
+    environment:
+      ReverseProxy__Clusters__hubs__SessionAffinity__Cookie__SecurePolicy: Always
+      ReverseProxy__Clusters__hubs__SessionAffinity__Cookie__HttpOnly: "true"

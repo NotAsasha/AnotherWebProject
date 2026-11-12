@@ -6,6 +6,7 @@
 .vs
 .idea
 .env
+.local
 .env.*
 **/appsettings.Local.json
 **/*.user

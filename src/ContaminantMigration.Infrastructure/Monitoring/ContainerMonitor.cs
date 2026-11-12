@@ -39,7 +39,7 @@ public sealed class ContainerMonitor(IOptions<WorkerScalingOptions> settings, Mo
                                 await docker.Containers.GetContainerStatsAsync(container.ID,
                                     new ContainerStatsParameters { Stream = false }, capture, timeout.Token);
                             }
-                            catch (DockerApiException) { /* Container can disappear while being sampled. */ }
+                            catch (DockerApiException) {}
                             catch (OperationCanceledException) when (!ct.IsCancellationRequested) { }
                         }
                         var stats = capture.Value;

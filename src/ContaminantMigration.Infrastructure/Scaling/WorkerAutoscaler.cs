@@ -116,7 +116,7 @@ public sealed class WorkerAutoscaler(IServiceScopeFactory scopes, NpgsqlDataSour
     private async Task CreateWorker(IDockerClient docker, ContainerInspectResponse template, CancellationToken ct)
     {
         if (template.Mounts.Count > 0) throw new InvalidOperationException("Worker template must not have host mounts.");
-        var name = $"cm-auto-worker-{Guid.NewGuid():N}";
+        var name = $"yet-another-worker-{Guid.NewGuid():N}";
         var network = template.NetworkSettings.Networks.Keys.Single();
         var environment = template.Config.Env.Where(x => !x.StartsWith("WorkerManagement__Token=", StringComparison.OrdinalIgnoreCase)).ToList();
         environment.Add($"WorkerManagement__Token={Convert.ToHexString(RandomNumberGenerator.GetBytes(32))}");

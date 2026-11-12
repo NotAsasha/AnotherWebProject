@@ -1,4 +1,3 @@
-# Docker Compose 2.24.4+: explicit API destinations; scalable competing Workers.
 services:
   api2:
     extends:
@@ -10,7 +9,6 @@ services:
   worker:
     deploy:
       replicas: 2
-    # Each replica receives a free localhost port; health checks run inside Docker.
     ports: !override
       - "127.0.0.1::8080"
 

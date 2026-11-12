@@ -43,6 +43,8 @@ test("Register, run, inspect frames, reload history and log out", async ({
   page,
 }) => {
   const errors: string[] = [];
+  const sockets: string[] = [];
+  page.on("websocket", (socket) => sockets.push(socket.url()));
   let submissions = 0;
   let successfulReads = 0;
   let accepted = false;
@@ -97,6 +99,17 @@ test("Register, run, inspect frames, reload history and log out", async ({
     "data-connection",
     "live",
   );
+  if (new URL(page.url()).protocol === "https:") {
+    expect(
+      sockets.some((url) => url.startsWith("wss://localhost:5443/hubs/")),
+    ).toBe(true);
+    expect(sockets.every((url) => url.startsWith("wss:"))).toBe(true);
+    const affinity = (await page.context().cookies()).find(
+      (cookie) => cookie.name === "ContaminantMigration.Affinity",
+    );
+    expect(affinity?.secure).toBe(true);
+    expect(affinity?.httpOnly).toBe(true);
+  }
   const validationError =
     "Simulation exceeds 200000000 estimated cell updates.";
   await page.route(
@@ -468,6 +481,31 @@ test("Admin monitoring enforces role, shows metrics and clears data after role r
     page.getByRole("table", { name: "Контейнери системи" }),
   ).not.toBeVisible();
   await expect(page.getByRole("alert")).toContainText("Недостатньо прав.");
+});
+
+test("HTTPS entry redirects HTTP and preserves path and query", async ({
+  page,
+  request,
+  baseURL,
+}) => {
+  test.skip(
+    !baseURL?.startsWith("https:"),
+    "Requires the HTTPS Compose configuration",
+  );
+  const redirect = await request.get(
+    "http://localhost:5173/history?view=recent",
+    { maxRedirects: 0 },
+  );
+  expect(redirect.status()).toBe(308);
+  expect(redirect.headers().location).toBe(
+    "https://localhost:5443/history?view=recent",
+  );
+  const response = await page.goto("http://localhost:5173/");
+  await expect(page).toHaveURL("https://localhost:5443/");
+  expect((await response!.securityDetails())?.protocol).toMatch(/^TLS/);
+  expect(await page.evaluate(() => window.isSecureContext)).toBe(true);
+  const health = await request.get("/health");
+  expect(health.status()).toBe(200);
 });
 
 test("Initial signup screen is usable on a phone", async ({ page }) => {

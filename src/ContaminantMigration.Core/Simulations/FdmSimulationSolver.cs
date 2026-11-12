@@ -70,7 +70,6 @@ public sealed class FdmSimulationSolver : ISimulationSolver
                 for (var i = 1; i < nx - 1; i++)
                 {
                     var index = row + i;
-                    // Nonnegative stencil weights: Euler + first-order Upwind + central diffusion.
                     var value = center * current[index]
                         + west * current[index - 1] + east * current[index + 1]
                         + south * current[index - nx] + north * current[index + nx];
@@ -80,7 +79,6 @@ public sealed class FdmSimulationSolver : ISimulationSolver
                 }
             }
 
-            // Boundary nodes in both buffers remain zero throughout the run.
             (current, next) = (next, current);
             if (frameIndex < frames.Length && step == plan.FrameSteps[frameIndex])
                 frames[frameIndex++] = CaptureFrame(current, plan, step, guard);

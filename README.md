@@ -23,6 +23,23 @@ docker compose --profile app up -d --build --wait --wait-timeout 180
 Інтерфейс: http://localhost:5173. Перевірка через YARP: http://localhost:5297/health/ready.
 API: http://localhost:5179/health/ready. Worker: http://localhost:5181/health/ready.
 
+HTTPS для локальної демонстрації (у Windows може з'явитися підтвердження довіри сертифікату):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/Configure-Https.ps1 -Trust
+docker compose -f docker-compose.yml -f docker-compose.replicas.yml -f docker-compose.autoscale.yml -f docker-compose.https.yml --profile app up -d --build --wait --wait-timeout 180
+```
+
+Вхід: https://localhost:5443; http://localhost:5173 перенаправляє зі збереженням шляху.
+TLS завершується в nginx; внутрішні з'єднання Docker та діагностичні порти залишаються HTTP.
+Сертифікат і ключ у `.local/https` виключені з Git/build context та монтуються лише для читання.
+Після оновлення сертифіката перезапустіть `client`. Для збереження HTTPS додавайте
+`-f docker-compose.https.yml` останнім при наступних `compose up`.
+Браузерні тести HTTPS: з папки `client` задайте `$env:E2E_BASE_URL='https://localhost:5443'`,
+`$env:NODE_EXTRA_CA_CERTS=(Resolve-Path ../.local/https/localhost.crt).Path` і виконайте
+`npm.cmd run test:e2e -- --grep 'HTTPS entry|Register, run|Admin monitoring|Initial signup'`.
+Для `test:realtime` також задайте `$env:TEST_API_URL='https://localhost:5443'`.
+
 Збірка без контейнерів:
 
 ```powershell

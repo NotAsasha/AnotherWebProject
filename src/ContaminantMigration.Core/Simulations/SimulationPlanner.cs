@@ -37,7 +37,6 @@ public sealed class SimulationPlanner
         if (initial is null) Error("initialCondition", "Required", "Initial condition is required.");
         ThrowIfInvalid();
 
-        // Null checks above produce field errors; no derived arithmetic happens before scalar validation.
         Range(domain!.LengthX, 0, Limits.MaxDomainLength, "domain.lengthX", excludeMin: true);
         Range(domain.LengthY, 0, Limits.MaxDomainLength, "domain.lengthY", excludeMin: true);
         Range(domain.NodesX, 3, Limits.MaxNodesPerAxis, "domain.nodesX");
@@ -67,7 +66,6 @@ public sealed class SimulationPlanner
             Error("initialCondition.sigma", "OutOfRange", "Sigma must be between max(dx,dy) and min(lengthX,lengthY)/2.");
         ThrowIfInvalid();
 
-        // Positivity condition for the complete unsplit 2D explicit update.
         var rate = Math.Abs(transport.VelocityX) / dx + Math.Abs(transport.VelocityY) / dy
             + 2 * (transport.Diffusion / dx / dx + transport.Diffusion / dy / dy);
         if (!double.IsFinite(rate))
@@ -91,7 +89,6 @@ public sealed class SimulationPlanner
 
         var totalSteps = (int)stepCount;
         var effectiveStep = time.DurationSeconds / totalSteps;
-        // Division near an exact CFL boundary can round upward by one ULP.
         if (effectiveStep * rate > 1)
         {
             totalSteps++;

@@ -27,7 +27,6 @@ public sealed class SimulationPlan
     public int TotalSteps { get; }
     public long EstimatedCellUpdates { get; }
     public long EstimatedResultBytes { get; }
-    /// <summary>Two double buffers plus uncompressed Float32 frames; excludes object metadata.</summary>
     public long EstimatedWorkingBytes { get; }
     public IReadOnlyList<int> FrameSteps { get; }
 }
