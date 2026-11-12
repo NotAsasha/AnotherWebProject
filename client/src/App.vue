@@ -4,18 +4,20 @@ import AuthScreen from "./components/AuthScreen.vue";
 import ParameterForm from "./components/ParameterForm.vue";
 import TaskList from "./components/TaskList.vue";
 import ResultViewer from "./components/ResultViewer.vue";
+import AdminOverview from "./components/AdminOverview.vue";
 import { useAuth } from "./stores/auth";
 import { useSimulations } from "./stores/simulations";
 import { active } from "./lib/types";
 const auth = useAuth();
 const jobs = useSimulations();
-const tab = ref<"workspace" | "history">("workspace");
+const tab = ref<"workspace" | "history" | "admin">("workspace");
 const form = ref<InstanceType<typeof ParameterForm>>();
 let transition = 0;
 watch(
   () => auth.user?.id,
   async (id) => {
     const epoch = ++transition;
+    tab.value = "workspace";
     await jobs.stop();
     if (epoch === transition && id && id === auth.user?.id) await jobs.start();
   },
@@ -87,6 +89,14 @@ onBeforeUnmount(() => {
         >
           Історія
         </button>
+        <button
+          v-if="auth.user.role === 'Admin'"
+          :class="{ selected: tab === 'admin' }"
+          :aria-current="tab === 'admin' ? 'page' : undefined"
+          @click="tab = 'admin'"
+        >
+          Адміністрування
+        </button>
       </nav>
       <span class="account-email">{{ auth.user.email }}</span>
       <button
@@ -132,6 +142,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <TaskList v-if="tab === 'history'" @select="select" />
+      <AdminOverview v-if="tab === 'admin' && auth.user.role === 'Admin'" />
     </main>
   </div>
 </template>

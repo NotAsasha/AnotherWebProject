@@ -759,3 +759,36 @@ td small {
     transition: none !important;
   }
 }
+
+.admin-overview {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.admin-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.admin-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 36px;
+  margin: 0;
+}
+.admin-summary dt {
+  color: #666;
+  font-size: 12px;
+}
+.admin-summary dd {
+  margin: 3px 0 0;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.admin-overview table {
+  min-width: 580px;
+}
+.admin-overview .container-name {
+  max-width: 330px;
+  overflow-wrap: anywhere;
+}

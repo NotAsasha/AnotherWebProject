@@ -14,6 +14,8 @@ using MassTransit;
 using StackExchange.Redis;
 using ContaminantMigration.Infrastructure.Scaling;
 using ContaminantMigration.Infrastructure.Simulations;
+using ContaminantMigration.Infrastructure.Monitoring;
+using ContaminantMigration.Core.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
@@ -34,6 +36,8 @@ if (builder.Configuration.GetValue<bool>("Scaling:ManagerOnly"))
     builder.Services.AddSingleton<WorkerScalingHealth>();
     builder.Services.AddHealthChecks().AddCheck<WorkerScalingHealth>("worker-scaling", tags: ["ready"]);
     builder.Services.AddHostedService<WorkerAutoscaler>();
+    builder.Services.AddSingleton<MonitoringStore>();
+    builder.Services.AddHostedService<ContainerMonitor>();
     var manager = builder.Build();
     manager.MapServiceHealthChecks();
     await manager.RunAsync();
@@ -56,6 +60,7 @@ builder.Services.AddSignalR().AddStackExchangeRedis(builder.Configuration.GetCon
     options.Configuration.ConnectTimeout = 3000;
 });
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<MonitoringStore>();
 builder.Services.AddHttpClient<QueueWaitEstimator>(client => client.Timeout = TimeSpan.FromSeconds(2));
 builder.Services.AddSingleton<PasswordService>();
 builder.Services.AddSingleton<JwtTokenService>();
@@ -91,6 +96,18 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+if (builder.Configuration["Admin:PromoteEmail"] is { Length: > 0 } adminEmail)
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var normalized = adminEmail.Trim().ToUpperInvariant();
+    var user = await db.Users.SingleOrDefaultAsync(x => x.NormalizedEmail == normalized)
+        ?? throw new InvalidOperationException("Register this user before assigning the Admin role.");
+    user.Role = UserRole.Admin;
+    await db.SaveChangesAsync();
+    app.Logger.LogInformation("Admin role assigned to {Email}. Sign in again to refresh the token.", user.Email);
+    return;
+}
 if (builder.Configuration.GetValue<bool>("Database:MigrateOnly"))
 {
     await using var scope = app.Services.CreateAsyncScope();
