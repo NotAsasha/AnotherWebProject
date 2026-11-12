@@ -90,10 +90,27 @@ Worker отримують вільні локальні порти; `5181` у ц
 REST балансується Round Robin, SignalR має окремий кластер із cookie affinity.
 Тест перевіряє паралельне виконання, Redis-доставку й відмову API2; активних задач перед запуском бути не повинно.
 Кількість Worker можна змінювати через `--scale worker=N`.
-Для повернення до одного API/Worker:
+Автоматичне масштабування (локальний Docker, до 4 Worker загалом):
 
 ```powershell
-docker compose -f docker-compose.yml -f docker-compose.replicas.yml stop api2
+docker compose -f docker-compose.yml -f docker-compose.replicas.yml -f docker-compose.autoscale.yml --profile app up -d --build --wait --wait-timeout 180
+npm.cmd --prefix client run test:autoscaling
+```
+
+`scaler` перевіряє RabbitMQ/PostgreSQL кожні 2 с, після 30 с без роботи поступово
+видаляє додаткові Worker. Базові Compose Worker зберігаються; керовані Worker
+мають ліміт 1 CPU / 512 MiB та завершують активну задачу перед видаленням.
+Параметри — `Scaling__MaxWorkers`, `Scaling__MinWorkers`, `Scaling__IdleSeconds`.
+Docker socket підключений лише до локального `scaler` і надає йому керування Docker daemon.
+Для паузи масштабування зупиніть `scaler` у Docker Desktop; наявні Worker продовжують роботу.
+Інтеграційні тести навантаження/реплік запускайте з вимкненим `scaler` та без активних задач.
+
+Для повернення до одного API/Worker:
+
+Дочекайтеся видалення додаткових Worker після простою, потім зупиніть контролер і API2:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.replicas.yml -f docker-compose.autoscale.yml stop scaler api2
 docker compose --profile app up -d --scale worker=1 --wait --wait-timeout 180
 ```
 

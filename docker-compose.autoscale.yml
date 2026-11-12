@@ -1,0 +1,20 @@
+# Opt-in local controller: Docker socket grants control over the local Docker daemon.
+services:
+  scaler:
+    extends:
+      file: docker-compose.yml
+      service: api
+    ports: !reset []
+    user: "0:0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      Scaling__ManagerOnly: "true"
+      Scaling__Project: contaminantmigration
+      Scaling__MinWorkers: "1"
+      Scaling__MaxWorkers: "4"
+      Scaling__PollSeconds: "2"
+      Scaling__IdleSeconds: "30"
+    depends_on:
+      worker:
+        condition: service_healthy

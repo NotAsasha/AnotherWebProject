@@ -12,6 +12,7 @@ using System.Text.Json.Serialization;
 using ContaminantMigration.WebApi.Realtime;
 using MassTransit;
 using StackExchange.Redis;
+using ContaminantMigration.Infrastructure.Scaling;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false)
@@ -23,6 +24,20 @@ builder.Logging.AddJsonConsole(options =>
     options.UseUtcTimestamp = true;
     options.TimestampFormat = "O";
 });
+
+if (builder.Configuration.GetValue<bool>("Scaling:ManagerOnly"))
+{
+    builder.Services.AddInfrastructure(builder.Configuration);
+    builder.Services.AddOptions<WorkerScalingOptions>().Bind(builder.Configuration.GetSection("Scaling"))
+        .Validate(x => x.IsValid(), "Invalid Worker scaling limits.").ValidateOnStart();
+    builder.Services.AddSingleton<WorkerScalingHealth>();
+    builder.Services.AddHealthChecks().AddCheck<WorkerScalingHealth>("worker-scaling", tags: ["ready"]);
+    builder.Services.AddHostedService<WorkerAutoscaler>();
+    var manager = builder.Build();
+    manager.MapServiceHealthChecks();
+    await manager.RunAsync();
+    return;
+}
 
 builder.Services.AddProblemDetails();
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
