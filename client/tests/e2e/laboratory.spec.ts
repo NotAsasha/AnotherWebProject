@@ -97,6 +97,15 @@ test("Register, run, inspect frames, reload history and log out", async ({
     "data-connection",
     "live",
   );
+  const validationError = "Simulation exceeds 200000000 estimated cell updates.";
+  await page.route("**/api/v1/simulations/validate", route => route.fulfill({
+    status: 400,
+    contentType: "application/problem+json",
+    body: JSON.stringify({ errors: { domain: [validationError] } }),
+  }), { times: 1 });
+  await page.getByRole("button", { name: "Запустити симуляцію", exact: true }).click();
+  await expect(page.getByRole("alert")).toHaveText(validationError);
+  expect(submissions).toBe(0);
   await page
     .getByRole("button", { name: "Запустити симуляцію", exact: true })
     .click();

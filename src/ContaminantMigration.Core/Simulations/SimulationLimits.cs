@@ -11,7 +11,7 @@ public sealed record SimulationLimits
     public double MaxDurationSeconds { get; init; } = 86_400;
     public double MaxPeak { get; init; } = 1_000_000;
     public int MaxTimeSteps { get; init; } = 10_000;
-    public long MaxCellUpdates { get; init; } = 200_000_000;
+    public long MaxCellUpdates { get; init; } = 2_000_000_000;
     public int MaxFrames { get; init; } = 32;
     public long MaxResultBytes { get; init; } = 32 * 1024 * 1024;
     public long MaxWorkingBytes { get; init; } = 64 * 1024 * 1024;

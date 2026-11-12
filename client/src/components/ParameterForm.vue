@@ -86,8 +86,10 @@ async function perform() {
       failure instanceof Error
         ? failure.message
         : "Не вдалося запустити симуляцію.";
-    if (failure instanceof ApiError && Object.keys(failure.fields).length)
-      error.value += " Перевірте сітку, часовий крок та обсяг обчислень.";
+    if (failure instanceof ApiError) {
+      const details = [...new Set(Object.values(failure.fields).flat())];
+      if (details.length) error.value = details.join(" ");
+    }
   } finally {
     busy.value = false;
   }
