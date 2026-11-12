@@ -1,0 +1,23 @@
+# Docker Compose 2.24.4+: explicit API destinations; scalable competing Workers.
+services:
+  api2:
+    extends:
+      file: docker-compose.yml
+      service: api
+    ports: !override
+      - "127.0.0.1:5180:8080"
+
+  worker:
+    deploy:
+      replicas: 2
+    # Each replica receives a free localhost port; health checks run inside Docker.
+    ports: !override
+      - "127.0.0.1::8080"
+
+  gateway:
+    environment:
+      ReverseProxy__Clusters__api__Destinations__api2__Address: http://api2:8080/
+      ReverseProxy__Clusters__hubs__Destinations__api2__Address: http://api2:8080/
+    depends_on:
+      api2:
+        condition: service_healthy

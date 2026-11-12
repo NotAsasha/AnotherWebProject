@@ -66,6 +66,37 @@ powershell -ExecutionPolicy Bypass -File scripts/Test-Simulations.ps1
 
 Скрипт тимчасово зупиняє Worker/RabbitMQ та видаляє лише власні тестові записи.
 
+Перевірка навантаження (один Worker, без активних задач):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/Test-Load.ps1
+```
+
+Три важкі задачі, прогрес, CPU/пам'ять, скасування, аварійне відновлення й тайм-аут.
+Скрипт тимчасово перестворює Worker, відновлює звичайну конфігурацію та очищає власні записи.
+`-ReportPath <path.json>` зберігає вимірювання; без параметра файл не створюється.
+Ліміти API/Worker можна перевизначити через `SimulationLimits__MaxCellUpdates`
+і `SimulationLimits__MaxExecutionTime` (наприклад, `00:01:00`).
+
+Два API й два Worker (Docker Compose 2.24.4+):
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.replicas.yml --profile app up -d --build --wait --wait-timeout 180
+npm.cmd --prefix client run test:replicas
+```
+
+Інтерфейс і Gateway мають ті самі адреси. API2: `http://localhost:5180`.
+Worker отримують вільні локальні порти; `5181` у цьому режимі не фіксований.
+REST балансується Round Robin, SignalR має окремий кластер із cookie affinity.
+Тест перевіряє паралельне виконання, Redis-доставку й відмову API2; активних задач перед запуском бути не повинно.
+Кількість Worker можна змінювати через `--scale worker=N`.
+Для повернення до одного API/Worker:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.replicas.yml stop api2
+docker compose --profile app up -d --scale worker=1 --wait --wait-timeout 180
+```
+
 Перевірки клієнта: `npm.cmd --prefix client run test:unit`.
 Інтеграція з увімкненим Docker: `npm.cmd --prefix client run test:realtime`.
 Браузерні тести запускайте з папки `client`: `npm.cmd run test:e2e` (потрібен Chrome).

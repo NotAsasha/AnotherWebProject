@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test:unit": "node --test tests/heatmap.test.mjs",
     "test:realtime": "node --test tests/realtime.integration.mjs",
+    "test:replicas": "node --test tests/replicas.integration.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {

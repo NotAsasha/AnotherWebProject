@@ -134,6 +134,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ReverseProxy__Clusters__api__Destinations__api1__Address: http://api:8080/
+      ReverseProxy__Clusters__hubs__Destinations__api1__Address: http://api:8080/
     ports:
       - "127.0.0.1:5297:8080"
     depends_on:

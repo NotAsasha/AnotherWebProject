@@ -15,7 +15,8 @@ builder.Logging.AddJsonConsole(options =>
     options.UseUtcTimestamp = true;
     options.TimestampFormat = "O";
 });
-builder.Services.AddSingleton<SimulationPlanner>();
+builder.Services.AddSingleton(_ => new SimulationPlanner(
+    builder.Configuration.GetSection("SimulationLimits").Get<SimulationLimits>()));
 builder.Services.AddSingleton<ISimulationSolver, FdmSimulationSolver>();
 builder.Services.AddInfrastructure(builder.Configuration, bus => bus.AddConsumer<SimulationConsumer, SimulationConsumerDefinition>());
 builder.Services.AddHostedService<TaskRecoveryService>();

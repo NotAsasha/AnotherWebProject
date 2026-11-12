@@ -26,7 +26,8 @@ builder.Logging.AddJsonConsole(options =>
 
 builder.Services.AddProblemDetails();
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-builder.Services.AddSingleton<SimulationPlanner>();
+builder.Services.AddSingleton(_ => new SimulationPlanner(
+    builder.Configuration.GetSection("SimulationLimits").Get<SimulationLimits>()));
 builder.Services.AddOpenApi();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddInfrastructure(builder.Configuration,
